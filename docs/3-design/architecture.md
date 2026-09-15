@@ -8,37 +8,46 @@ Two crates — one `core` reference implementation, one `saf` facade. No
 `spi` crate yet:
 
 - **`pipeline-svc-core`** — the technology-free reference implementation:
-  `InMemoryPipeline` (runs a fixed, ordered `Vec<Stage>`, no persistence,
-  no distributed coordination). See
+  `InMemoryPipeline<P>` (runs a fixed, ordered `Vec<Stage<P>>`, generic
+  over the payload type, no persistence, no distributed coordination). See
   [ADR-001](adr/ADR-001-in-memory-reference-implementation.md) for the
   implementation-shape reasoning.
-- **`pipeline-svc-saf`** — `PipelineFactory` (`in_memory(stages)`, always
-  available — no feature gate, since there's only one backend). A consumer
-  depends on `pipeline-pattern` + `pipeline-svc-saf` alone.
+- **`pipeline-svc-saf`** — `PipelineFactory` (`in_memory::<P>(stages)`,
+  always available — no feature gate, since there's only one backend). A
+  consumer depends on `pipeline-pattern` + `pipeline-svc-saf` alone.
 
-## `Pipeline` is object-safe — like `Scheduler`, unlike `executor-pattern`'s `Executor`
+## `Pipeline` is not object-safe — `PipelineFactory` returns `impl Pipeline<Payload = P>`
 
-`Pipeline::run` has no generic parameters, so `Pipeline` is fully
-object-safe: `Box<dyn Pipeline>` exists. `PipelineFactory::in_memory()`
-returns `Box<dyn Pipeline>` uniformly, matching `message-broker-svc-saf`'s
-`MessageBrokerFactory`/`scheduler-svc-saf`'s `SchedulerFactory` shape —
-unlike `executor-svc-saf`'s `ExecutorFactory`, which must return `impl
-Executor` per constructor because `Executor::run<F: Future>` is generic.
-Worth stating explicitly: these are sibling `-svc` repos in this org with
-genuinely different object-safety constraints, not an inconsistency to
-"fix" toward matching each other.
+As of `pipeline-pattern` v0.2.0, `Pipeline::Payload` is an associated type
+(a zero-cost abstraction fix — see
+[pipeline-pattern#5](https://github.com/sweengineeringlabs/pipeline-pattern/issues/5)
+and that crate's own architecture.md), so `Pipeline` is no longer
+object-safe: there is no `Box<dyn Pipeline>`. `PipelineFactory::in_memory`
+is now a generic function, `pub fn in_memory<P: Send + 'static>(stages:
+Vec<Stage<P>>) -> impl Pipeline<Payload = P>` (resolved in
+[pipeline-svc#3](https://github.com/sweengineeringlabs/pipeline-svc/issues/3)),
+not `Box<dyn Pipeline>`.
+
+This is a different shape from `message-broker-svc-saf`'s
+`MessageBrokerFactory`/`scheduler-svc-saf`'s `SchedulerFactory` (both still
+object-safe, both still return one uniform boxed/`impl` type) for a
+different reason than `executor-svc-saf`'s `ExecutorFactory`
+(`Executor::run<F: Future>`'s own generic method, not an associated type on
+the trait). Worth stating explicitly so none of these three repos gets
+"fixed" toward matching either of the others — each object-safety
+consequence has its own real, distinct cause.
 
 ## Component Diagram
 
 ```mermaid
 flowchart TD
     subgraph pattern["pipeline-pattern"]
-        contract["Pipeline, Stage, Payload, PipelineError"]
+        contract["Pipeline (generic Payload), Stage&lt;P&gt;, Payload, PipelineError"]
     end
 
     subgraph svc["pipeline-svc"]
-        core["pipeline-svc-core<br/>InMemoryPipeline"]
-        saf["pipeline-svc-saf<br/>PipelineFactory"]
+        core["pipeline-svc-core<br/>InMemoryPipeline&lt;P&gt;"]
+        saf["pipeline-svc-saf<br/>PipelineFactory::in_memory::&lt;P&gt;"]
 
         core -->|implements| contract
         saf -->|wires| core
@@ -67,7 +76,7 @@ to make for branching/DAG support. Add one when a real need does.
 ## Scope boundary
 
 This repo implements exactly `pipeline-pattern`'s `Pipeline` trait, one
-backend. Not covered, deliberately:
+backend. Not covered:
 
 - **Distributed/external-engine backends** — no `spi` crate yet, see
   above.

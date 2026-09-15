@@ -11,11 +11,11 @@ re-run the listed command after any change and expect the stated result.
 |---|------|--------|
 | 1 | `pipeline-svc-core` names no pipeline/workflow technology and has no external dependency | `grep -nE "^\s*(pub )?(struct\|enum\|fn) \w*(Temporal\|Airflow\|Kafka\|Postgres)" main/pipeline/core/src/*.rs` returns nothing; `main/pipeline/core/Cargo.toml`'s `[dependencies]` lists only `pipeline-pattern` |
 
-## 2. `PipelineFactory` returns `Box<dyn Pipeline>` uniformly
+## 2. `PipelineFactory` returns zero-cost `impl Pipeline<Payload = P>`, not `Box<dyn Pipeline>`
 
 | # | Rule | Verify |
 |---|------|--------|
-| 2 | `PipelineFactory::in_memory` returns `Box<dyn Pipeline>` | `grep -n "Box<dyn Pipeline>" main/pipeline/saf/src/*.rs` shows the constructor's return type |
+| 2 | `PipelineFactory::in_memory` returns `impl Pipeline<Payload = P>`, no heap allocation or vtable dispatch | `grep -n "pub fn in_memory" -A1 main/pipeline/saf/src/pipeline_factory.rs` shows `-> impl Pipeline<Payload = P>`, not `Box<dyn Pipeline>` |
 | 3 | `saf`'s own `lib.rs` never re-exports a concrete backend type (`InMemoryPipeline`) | `grep -n "^pub use" main/pipeline/saf/src/lib.rs` shows only `PipelineFactory` |
 
 ## 3. Lint gates

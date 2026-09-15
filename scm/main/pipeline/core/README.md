@@ -1,9 +1,9 @@
 # pipeline-svc-core
 
-`InMemoryPipeline`: the technology-free reference implementation of
-`pipeline-pattern`'s `Pipeline` trait — a fixed, ordered `Vec<Stage>` set
-once at construction, run with no lock, no persistence, no distributed
-coordination.
+`InMemoryPipeline<P>`: the technology-free reference implementation of
+`pipeline-pattern`'s `Pipeline` trait, generic over the payload type `P` —
+a fixed, ordered `Vec<Stage<P>>` set once at construction, run with no
+lock, no persistence, no distributed coordination.
 
 See [Architecture](../../../../docs/3-design/architecture.md) for the full
 explanation.

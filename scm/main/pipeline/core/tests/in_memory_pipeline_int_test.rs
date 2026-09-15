@@ -7,7 +7,7 @@ use std::sync::Arc;
 use pipeline_pattern::{Payload, Pipeline, PipelineError, PipelineFuture, Stage};
 use pipeline_svc_core::InMemoryPipeline;
 
-fn append_stage(suffix: &'static str) -> Stage {
+fn append_stage(suffix: &'static str) -> Stage<Payload> {
     Arc::new(move |mut payload: Payload| {
         PipelineFuture::new(async move {
             payload.body.extend_from_slice(suffix.as_bytes());
@@ -16,11 +16,11 @@ fn append_stage(suffix: &'static str) -> Stage {
     })
 }
 
-fn failing_stage() -> Stage {
+fn failing_stage() -> Stage<Payload> {
     Arc::new(|_payload: Payload| PipelineFuture::new(async { Err("boom".to_string()) }))
 }
 
-fn add_header_stage(key: &'static str, value: &'static str) -> Stage {
+fn add_header_stage(key: &'static str, value: &'static str) -> Stage<Payload> {
     Arc::new(move |mut payload: Payload| {
         PipelineFuture::new(async move {
             payload.headers.insert(key.to_string(), value.to_string());
@@ -74,7 +74,7 @@ async fn test_run_with_three_stages_chains_output_to_input_in_order() {
 async fn test_run_stops_at_failing_stage_and_third_stage_never_runs() {
     let stage_three_ran = Arc::new(AtomicBool::new(false));
     let marker = Arc::clone(&stage_three_ran);
-    let marking_stage: Stage = Arc::new(move |payload: Payload| {
+    let marking_stage: Stage<Payload> = Arc::new(move |payload: Payload| {
         let marker = Arc::clone(&marker);
         PipelineFuture::new(async move {
             marker.store(true, Ordering::SeqCst);

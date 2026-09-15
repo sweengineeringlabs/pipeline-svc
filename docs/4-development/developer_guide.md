@@ -26,9 +26,11 @@ pipeline-svc/
 
 - `dev` is the default branch; all work lands there first.
 - `main` gets fast-forwarded to `dev` after a shipped change, not on every commit.
-- Not yet published to crates.io. First publish will be v0.1.0 for both crates.
+- Not yet published to crates.io. First publish will be whatever version is
+  current at that time (past v0.1.0 already for both crates — see each
+  crate's own `Cargo.toml`).
 - Depends on [`pipeline-pattern`](https://github.com/sweengineeringlabs/pipeline-pattern)
-  by `git`+`tag` (`tag = "v0.1.0"`), this org's standing convention for a
+  by `git`+`tag` (`tag = "v0.2.0"`), this org's standing convention for a
   cross-repo dependency whose target hasn't published to crates.io yet.
   Switch to a version requirement once `pipeline-pattern` publishes.
 
@@ -42,10 +44,12 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --check
 ```
 
-`PipelineFactory::in_memory(stages)` is always available, no feature
-required — only one backend exists. Unlike `SchedulerFactory::in_memory()`/
-`TransactionalStoreFactory::in_memory()`, it takes `stages` directly — see
-`docs/3-design/architecture.md`'s own section on why.
+`PipelineFactory::in_memory::<P>(stages)` is always available, no feature
+required — only one backend exists. It's a generic function (returns
+`impl Pipeline<Payload = P>`, zero-cost, not `Box<dyn Pipeline>` — see
+`docs/3-design/architecture.md`'s own section on why) and, unlike
+`SchedulerFactory::in_memory()`/`TransactionalStoreFactory::in_memory()`,
+takes `stages` directly rather than being parameterless.
 
 ## See Also
 
