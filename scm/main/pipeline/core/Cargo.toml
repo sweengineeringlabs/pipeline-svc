@@ -1,0 +1,33 @@
+[package]
+name         = "pipeline-svc-core"
+version      = "0.1.0"
+edition      = "2021"
+license      = "MIT OR Apache-2.0"
+authors      = ["SWE Engineering Labs"]
+repository   = "https://github.com/sweengineeringlabs/pipeline-svc"
+rust-version = "1.98"
+description  = "pipeline-svc core: the technology-free reference implementation of pipeline-pattern's Pipeline trait (InMemoryPipeline), backed only by std. No external dependency -- no spi backend exists yet, see docs/3-design/architecture.md."
+keywords     = ["pipeline", "core", "async", "swe"]
+categories   = ["asynchronous"]
+
+[package.metadata.arch]
+application_type = "lib"
+service_type     = "pipeline"
+
+[lib]
+name = "pipeline_svc_core"
+path = "src/lib.rs"
+
+[dependencies]
+pipeline-pattern = { git = "https://github.com/sweengineeringlabs/pipeline-pattern.git", tag = "v0.1.0" }
+
+[dev-dependencies]
+tokio = { version = "1.52", features = ["rt-multi-thread", "macros"] }
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
